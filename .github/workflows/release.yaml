@@ -1,8 +1,7 @@
 name: Create flytekit-java release
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
+
 
 jobs:
   build-snapshot:
