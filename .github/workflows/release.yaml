@@ -2,7 +2,6 @@ name: Create flytekit-java release
 on:
   workflow_dispatch:
 
-
 jobs:
   build-snapshot:
     runs-on: ubuntu-latest
@@ -18,26 +17,17 @@ jobs:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-prepare-release-${{ hashFiles('pom.xml') }}
 
-      - uses: crazy-max/ghaction-import-gpg@v3
-        with:
-          gpg-private-key: ${{ secrets.FLYTE_BOT_GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.FLYTE_BOT_GPG_PASSPHRASE }}
-          git-user-signingkey: true
-          git-commit-gpgsign: false
-
-
-      - name: Install SSH key
-        uses: shimataro/ssh-key-action@v2
-        with:
-          key: ${{ secrets.SSH_PRIVATE_KEY_PEM }}
-          known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
-          
       - name: Setup JDK 11
         uses: actions/setup-java@v2
         with:
           java-version: 11.0
           distribution: 'adopt'
           server-id: snapshots
+
+      - name: Setup git configuration
+        run: |
+          git config --global user.email ${{ github.actor }}@users.noreply.github.com
+          git config --global user.name ${{ github.actor }}
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v1
@@ -48,9 +38,11 @@ jobs:
 
       - name: Release snapshot with Maven
         run: |
-          mvn --batch-mode release:prepare release:perform -DpreparationGoals=clean -DgenerateBackupPoms=false  -Ddockerfile.push
+          mvn --batch-mode release:prepare  -DpreparationGoals=clean -DgenerateBackupPoms=false
+          mvn --batch-mode release:perform  -DpreparationGoals=clean -Ddockerfile.push
         env:
           RELEASE_REPOSITORY_URL: "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+          GITHUB_TOKEN: ${{ secrets.FLYTE_BOT_PAT }}
           SNAPSHOTS_REPOSITORY_URL: "https://s01.oss.sonatype.org/content/repositories/snapshots"
           MAVEN_USERNAME: flytekit
           MAVEN_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
